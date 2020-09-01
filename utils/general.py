@@ -28,8 +28,15 @@ def rand_bin_array_with_percentage_ones(l, num_ones):
     return a
 
 def sprs_mat_with_rand_percent_cnxns(shape, row_percent):
-    num_ones = int(row_percent * shape[0])
-    stacked = np.stack([rand_bin_array_with_percentage_ones(shape[0], num_ones) for i in range(shape[1])])
+    if type(row_percent) is GaussianPDF:
+        num_ones_vec = shape[0] * row_percent(shape[1])
+        num_ones_vec[num_ones_vec < 0] = 0
+        num_ones_vec[num_ones_vec > shape[0]] = shape[0]
+        num_ones_vec = num_ones_vec.astype(int)
+        stacked = np.stack([rand_bin_array_with_percentage_ones(shape[0], num_ones) for num_ones in num_ones_vec])
+    else:
+        num_ones = int(row_percent * shape[0])
+        stacked = np.stack([rand_bin_array_with_percentage_ones(shape[0], num_ones) for i in range(shape[1])])
     return stacked
 
 def outer_product_n_dim(*args):
@@ -49,3 +56,13 @@ def to_unique_vals(df, col_names):
     if type(col_names) is str:
         col_names = [col_names]
     return tuple([df[col_name].unique() for col_name in col_names])
+
+class GaussianPDF(object):
+    '''Class for drawing from Gaussian distribution'''
+
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, size):
+        return np.random.normal(self.mean, self.std, size)
